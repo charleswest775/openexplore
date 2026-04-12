@@ -6,19 +6,32 @@ dist/
 build/
 .venv/
 venv/
+*.whl
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # iPhone backup data (don't commit actual backup files)
 *.mdbackup
 *.mddata
 backups/
+test_backups/
 
 # Environment
 .env
+.env.local
+
+# Temp files from decryption
+tmp_decrypted/

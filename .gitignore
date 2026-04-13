@@ -2,15 +2,31 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-dist/
-build/
-.venv/
-venv/
-*.whl
 .ruff_cache/
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Python venv
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Electron Builder
+release/
+*.dmg
+*.exe
+*.AppImage
+*.snap
+
+# PyInstaller
+python-sidecar/dist/
+python-sidecar/build/
+*.spec
 
 # IDE
 .vscode/

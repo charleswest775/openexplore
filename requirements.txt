@@ -1,4 +1,0 @@
-flask>=3.1
-flask-cors>=6.0
-iphone_backup_decrypt>=0.9
-pycryptodome>=3.20

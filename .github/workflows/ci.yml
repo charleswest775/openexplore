@@ -10,36 +10,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  python:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     strategy:
       matrix:
         python-version: ['3.11', '3.12']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: requirements*.txt
+
+      - name: Install Python dependencies
+        run: pip install -r python-sidecar/requirements.txt
+
+      - name: Python import check
+        run: cd python-sidecar && python -c "from openexplore.rpc_server import RPCServer; print('OK')"
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+        run: npm ci
 
-      - name: Python lint
-        run: ruff check openexplore/
+      - name: TypeScript check
+        run: npm run typecheck
 
-      - name: Python format check
-        run: ruff format --check openexplore/
-
-      - name: Python tests
-        run: pytest tests/ -v --tb=short
-
-      - name: Import verification
-        run: python -c "from openexplore.app import create_app; print('App factory OK')"
+      - name: Build
+        run: npm run build

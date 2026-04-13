@@ -1,0 +1,70 @@
+{
+  "name": "openexplore",
+  "version": "0.1.0",
+  "description": "Universal explorer for iPhone backups — browse databases, plists, and files",
+  "main": "dist/main/index.js",
+  "author": "Charles West",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npm run build:main && concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:renderer": "vite --config src/renderer/vite.config.ts",
+    "dev:electron": "wait-on http://localhost:5173 && electron dist/main/index.js",
+    "build:main": "tsc -p src/main/tsconfig.json",
+    "build:preload": "tsc -p src/preload/tsconfig.json",
+    "build:renderer": "vite build --config src/renderer/vite.config.ts",
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer",
+    "package": "npm run build && electron-builder",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit -p src/renderer/tsconfig.json && tsc --noEmit -p src/main/tsconfig.json"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "@tanstack/react-table": "^8.20.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@uiw/react-codemirror": "^4.23.0",
+    "@codemirror/lang-sql": "^6.8.0",
+    "concurrently": "^9.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "eslint": "^9.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-window": "^1.8.10",
+    "@types/react-window": "^1.8.8",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "wait-on": "^8.0.0",
+    "zustand": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.charleswest.openexplore",
+    "productName": "OpenExplore",
+    "files": [
+      "dist/**/*",
+      "python-sidecar/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "python-sidecar/dist/",
+        "to": "python-sidecar",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": ["dmg"],
+      "hardenedRuntime": true
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Utility"
+    }
+  }
+}

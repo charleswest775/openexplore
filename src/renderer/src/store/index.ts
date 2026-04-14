@@ -7,7 +7,7 @@ import type {
   GlobalSearchResult,
 } from '../types';
 
-type Screen = 'welcome' | 'dashboard' | 'explorer' | 'search' | 'plist' | 'export';
+type Screen = 'welcome' | 'dashboard' | 'explorer' | 'search' | 'plist' | 'export' | 'forensics';
 
 interface AppState {
   // Navigation

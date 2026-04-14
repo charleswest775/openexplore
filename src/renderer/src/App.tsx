@@ -7,6 +7,7 @@ import { ExplorerScreen } from './screens/ExplorerScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { PlistScreen } from './screens/PlistScreen';
 import { ExportScreen } from './screens/ExportScreen';
+import { ForensicsScreen } from './screens/ForensicsScreen';
 import { PasswordModal } from './components/PasswordModal';
 import { ErrorBanner } from './components/ErrorBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -55,6 +56,7 @@ export function App() {
         {screen === 'search' && <SearchScreen />}
         {screen === 'plist' && <PlistScreen />}
         {screen === 'export' && <ExportScreen />}
+        {screen === 'forensics' && <ForensicsScreen />}
       </div>
     </ErrorBoundary>
   );

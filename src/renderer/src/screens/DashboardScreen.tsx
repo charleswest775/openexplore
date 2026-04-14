@@ -84,6 +84,7 @@ export function DashboardScreen() {
             {backupInfo.device.model} &middot; iOS {backupInfo.device.ios_version}
           </span>
         </div>
+        <button className="btn" onClick={() => setScreen('query')} style={{fontWeight:600,marginRight:8}}>⚡ Quick Access</button>
         <input
           className="input"
           placeholder="Filter databases..."

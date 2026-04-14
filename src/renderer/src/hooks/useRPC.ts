@@ -3,14 +3,26 @@ import { useAppStore } from '../store';
 import type { BackupInfo, DatabaseInfo, TableData, FileTreeNode } from '../types';
 
 export function useRPC() {
-  const store = useAppStore();
+  // Select only the stable setter functions — not the whole store.
+  // Zustand setters have stable references and won't cause re-renders.
+  const setIsLoading = useAppStore((s) => s.setIsLoading);
+  const setError = useAppStore((s) => s.setError);
+  const setBackupInfo = useAppStore((s) => s.setBackupInfo);
+  const setDatabases = useAppStore((s) => s.setDatabases);
+  const setFileTree = useAppStore((s) => s.setFileTree);
+  const setTableData = useAppStore((s) => s.setTableData);
+  const setScreen = useAppStore((s) => s.setScreen);
+  const setShowPasswordModal = useAppStore((s) => s.setShowPasswordModal);
+  const setIsSearching = useAppStore((s) => s.setIsSearching);
+  const setGlobalSearchQuery = useAppStore((s) => s.setGlobalSearchQuery);
+  const setGlobalSearchResults = useAppStore((s) => s.setGlobalSearchResults);
 
   const openBackup = useCallback(async (path: string, password?: string) => {
-    store.setIsLoading(true);
-    store.setError(null);
+    setIsLoading(true);
+    setError(null);
     try {
       const info = (await window.api.rpc('backup.open', { path, password })) as BackupInfo;
-      store.setBackupInfo(info);
+      setBackupInfo(info);
 
       await window.api.addRecentBackup({
         path: info.path,
@@ -20,7 +32,7 @@ export function useRPC() {
       });
 
       // Navigate to dashboard immediately so user sees progress
-      store.setScreen('dashboard');
+      setScreen('dashboard');
 
       // Load databases and file tree in parallel — don't let one failure block the other
       const [dbResult, treeResult] = await Promise.allSettled([
@@ -29,27 +41,27 @@ export function useRPC() {
       ]);
 
       if (dbResult.status === 'fulfilled') {
-        store.setDatabases(dbResult.value.databases);
+        setDatabases(dbResult.value.databases);
       } else {
-        store.setError(`Database discovery failed: ${dbResult.reason}`);
+        setError(`Database discovery failed: ${dbResult.reason}`);
       }
 
       if (treeResult.status === 'fulfilled') {
-        store.setFileTree(treeResult.value.tree);
+        setFileTree(treeResult.value.tree);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       // Only prompt for password if we didn't already provide one and the
       // error is specifically the "password required" message from the sidecar
       if (!password && msg.includes('password required')) {
-        store.setShowPasswordModal(true, path);
+        setShowPasswordModal(true, path);
       } else {
-        store.setError(msg);
+        setError(msg);
       }
     } finally {
-      store.setIsLoading(false);
+      setIsLoading(false);
     }
-  }, [store]);
+  }, [setIsLoading, setError, setBackupInfo, setScreen, setDatabases, setFileTree, setShowPasswordModal]);
 
   const loadTableData = useCallback(
     async (
@@ -60,7 +72,7 @@ export function useRPC() {
       orderBy?: string,
       orderDir?: 'ASC' | 'DESC'
     ) => {
-      store.setIsLoading(true);
+      setIsLoading(true);
       try {
         const data = (await window.api.rpc('backup.getTableData', {
           fileId,
@@ -70,19 +82,19 @@ export function useRPC() {
           orderBy,
           orderDir,
         })) as TableData;
-        store.setTableData(data);
+        setTableData(data);
       } catch (err: unknown) {
-        store.setError(err instanceof Error ? err.message : String(err));
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
-        store.setIsLoading(false);
+        setIsLoading(false);
       }
     },
-    [store]
+    [setIsLoading, setTableData, setError]
   );
 
   const searchTable = useCallback(
     async (fileId: string, table: string, query: string, columns?: string[]) => {
-      store.setIsLoading(true);
+      setIsLoading(true);
       try {
         const data = (await window.api.rpc('backup.searchTable', {
           fileId,
@@ -90,20 +102,20 @@ export function useRPC() {
           query,
           columns,
         })) as TableData;
-        store.setTableData(data);
+        setTableData(data);
       } catch (err: unknown) {
-        store.setError(err instanceof Error ? err.message : String(err));
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
-        store.setIsLoading(false);
+        setIsLoading(false);
       }
     },
-    [store]
+    [setIsLoading, setTableData, setError]
   );
 
   const searchGlobal = useCallback(
     async (query: string) => {
-      store.setIsSearching(true);
-      store.setGlobalSearchQuery(query);
+      setIsSearching(true);
+      setGlobalSearchQuery(query);
       try {
         const result = (await window.api.rpc('backup.searchGlobal', { query })) as {
           results: Array<{
@@ -115,32 +127,32 @@ export function useRPC() {
             row: Record<string, unknown>;
           }>;
         };
-        store.setGlobalSearchResults(result.results);
-        store.setScreen('search');
+        setGlobalSearchResults(result.results);
+        setScreen('search');
       } catch (err: unknown) {
-        store.setError(err instanceof Error ? err.message : String(err));
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
-        store.setIsSearching(false);
+        setIsSearching(false);
       }
     },
-    [store]
+    [setIsSearching, setGlobalSearchQuery, setGlobalSearchResults, setScreen, setError]
   );
 
   const executeSQL = useCallback(
     async (fileId: string, sql: string) => {
-      store.setIsLoading(true);
+      setIsLoading(true);
       try {
         const data = (await window.api.rpc('backup.executeSQL', { fileId, sql })) as TableData;
-        store.setTableData(data);
+        setTableData(data);
         return data;
       } catch (err: unknown) {
-        store.setError(err instanceof Error ? err.message : String(err));
+        setError(err instanceof Error ? err.message : String(err));
         throw err;
       } finally {
-        store.setIsLoading(false);
+        setIsLoading(false);
       }
     },
-    [store]
+    [setIsLoading, setTableData, setError]
   );
 
   const exportTable = useCallback(
@@ -158,7 +170,7 @@ export function useRPC() {
 
   const getDeletedRecords = useCallback(
     async (fileId: string, table: string) => {
-      store.setIsLoading(true);
+      setIsLoading(true);
       try {
         const data = (await window.api.rpc('backup.getDeletedRecords', {
           fileId,
@@ -166,13 +178,13 @@ export function useRPC() {
         })) as TableData;
         return data;
       } catch (err: unknown) {
-        store.setError(err instanceof Error ? err.message : String(err));
+        setError(err instanceof Error ? err.message : String(err));
         return null;
       } finally {
-        store.setIsLoading(false);
+        setIsLoading(false);
       }
     },
-    [store]
+    [setIsLoading, setError]
   );
 
   const getFileContent = useCallback(async (fileId: string) => {

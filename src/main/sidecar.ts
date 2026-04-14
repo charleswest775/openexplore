@@ -126,10 +126,12 @@ export class SidecarManager {
       return path.join(resourcePath, 'python-sidecar', `openexplore${ext}`);
     }
 
-    // In development, use system Python
+    // In development, use venv Python relative to project root.
+    // app.getAppPath() returns dist/main in dev, so resolve up to project root.
+    const projectRoot = path.resolve(app.getAppPath(), '..', '..');
     const venvPython = process.platform === 'win32'
-      ? path.join(process.cwd(), '.venv', 'Scripts', 'python.exe')
-      : path.join(process.cwd(), '.venv', 'bin', 'python');
+      ? path.join(projectRoot, '.venv', 'Scripts', 'python.exe')
+      : path.join(projectRoot, '.venv', 'bin', 'python');
 
     return venvPython;
   }
@@ -138,6 +140,7 @@ export class SidecarManager {
     if (app.isPackaged) {
       return ''; // PyInstaller bundle doesn't need a script argument
     }
-    return path.join(process.cwd(), 'python-sidecar', 'main.py');
+    const projectRoot = path.resolve(app.getAppPath(), '..', '..');
+    return path.join(projectRoot, 'python-sidecar', 'main.py');
   }
 }

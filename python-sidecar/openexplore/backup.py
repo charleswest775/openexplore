@@ -8,6 +8,7 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 from .crypto import KeyBag, decrypt_file_content
 
@@ -79,8 +80,21 @@ class Backup:
         return self.get_info()
 
     def _validate_structure(self):
-        """Check that required files exist."""
+        """Check that required files exist. If the selected folder is a parent
+        containing a single backup subfolder, auto-resolve to it."""
         required = ["Manifest.db", "Manifest.plist", "Info.plist"]
+        if not (self.path / "Manifest.db").exists():
+            # Check immediate subdirectories for a valid backup
+            subdirs = [d for d in self.path.iterdir() if d.is_dir() and not d.name.startswith('.')]
+            backups = [d for d in subdirs if (d / "Manifest.db").exists()]
+            if len(backups) == 1:
+                self.path = backups[0]
+            elif len(backups) > 1:
+                names = ", ".join(b.name for b in backups)
+                raise ValueError(
+                    f"Multiple backups found — please select one: {names}"
+                )
+
         for f in required:
             if not (self.path / f).exists():
                 raise ValueError(f"Missing required file: {f} — not a valid iPhone backup")
@@ -165,6 +179,10 @@ class Backup:
             if 0 < pad_len <= 16 and all(b == pad_len for b in decrypted_data[-pad_len:]):
                 decrypted_data = decrypted_data[:-pad_len]
 
+        # Validate that the decrypted data is a valid SQLite database
+        if not decrypted_data or not decrypted_data[:16].startswith(b"SQLite format 3\x00"):
+            raise ValueError("Decryption failed — incorrect password or corrupted backup")
+
         import tempfile
         self._decrypted_manifest_path = tempfile.NamedTemporaryFile(
             suffix=".db", delete=False
@@ -174,11 +192,13 @@ class Backup:
 
     def _parse_manifest_db(self):
         """Open Manifest.db and build the file map."""
-        db_path = self.path / "Manifest.db"
         if hasattr(self, "_decrypted_manifest_path"):
-            db_path = self._decrypted_manifest_path.name
-
-        self._manifest_db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            # Decrypted temp file — use regular connection (URI mode has
+            # compatibility issues with temp directories on some platforms)
+            self._manifest_db = sqlite3.connect(self._decrypted_manifest_path.name)
+        else:
+            db_path = self.path / "Manifest.db"
+            self._manifest_db = sqlite3.connect(f"file:{quote(str(db_path))}?mode=ro", uri=True)
         self._manifest_db.execute("PRAGMA query_only = ON")
 
         cursor = self._manifest_db.execute(
@@ -429,7 +449,11 @@ class Backup:
             db_path = str(file_path)
 
         try:
-            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            if self.is_encrypted and entry.encryption_key:
+                # Decrypted temp file — use regular connection
+                conn = sqlite3.connect(db_path)
+            else:
+                conn = sqlite3.connect(f"file:{quote(str(db_path))}?mode=ro", uri=True)
             conn.execute("PRAGMA query_only = ON")
             # Verify it's a valid DB
             conn.execute("SELECT name FROM sqlite_master LIMIT 1")
